@@ -60,7 +60,9 @@ dispatcher.add_handler(stop_handler)
 
 def check_alternative(text):
     print(text)
-    httpResponse = requests.get(f"https://hebrew-academy.org.il/wp-admin/admin-ajax.php?action=load_halufot_text&input={text}&_ajax_nonce=55ec8a0336", verify = False)
+    
+    halufon_nonce = "2b4b4494f8"
+    httpResponse = requests.get(f"https://hebrew-academy.org.il/wp-admin/admin-ajax.php?action=load_halufot_text&input={text}&_ajax_nonce={halufon_nonce}", verify = False)
 
     if httpResponse.text == "":
         chatResponse = f"חוששני שאיני יודע את החלופה העברית ל{text}"
