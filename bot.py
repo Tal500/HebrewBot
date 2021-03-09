@@ -1,5 +1,7 @@
 import sys
 
+import os, signal, threading
+
 import logging
 
 import urllib3
@@ -10,10 +12,15 @@ from telegram import InlineQueryResultArticle, InputTextMessageContent
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, InlineQueryHandler
 
-if len(sys.argv) != 2:
+if len(sys.argv) < 2:
     raise ValueError('Please provide token as parameter')
 
 token = sys.argv[1]
+
+if (len(sys.argv) < 3):
+    chatIdControling = None
+else:
+    chatIdControling = int(sys.argv[2])
 
 urllib3.disable_warnings()
 
@@ -31,8 +38,22 @@ start_handler = CommandHandler('start', start)
 dispatcher.add_handler(start_handler)
 
 def stop(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Bye bye!")
-    updater.stop()
+    print("chat id: ", update.effective_chat.id)
+
+    if chatIdControling and chatIdControling != update.effective_chat.id:
+        print("unauthorized invocation of stop command")
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Bye bye!")
+        context.bot.deleteWebhook()
+        #context.bot.close()
+
+        def send_stop():
+            updater.stop()
+
+        sender = threading.Thread(target=send_stop, name='sender')
+        sender.start()
+        #sender.join()
+        os.kill(os.getpid(), signal.SIGINT)
 
 stop_handler = CommandHandler('stop', stop)
 dispatcher.add_handler(stop_handler)
@@ -96,3 +117,5 @@ dispatcher.add_handler(inline_handler)
 
 updater.start_polling()
 updater.idle()
+
+print("end")
