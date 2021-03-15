@@ -58,16 +58,40 @@ def stop(update, context):
 stop_handler = CommandHandler('stop', stop)
 dispatcher.add_handler(stop_handler)
 
-def check_alternative(text):
+#halufon_nonce = "2b4b4494f8"
+
+def renew_halufon_nonce():
+	httpResponseText = requests.get("https://hebrew-academy.org.il/איך-אומרים-בעברית/", verify = False).text
+	
+	definition_str = 'var halufon_nonce = \"'
+	
+	halufon_nonce_def_start_loc = httpResponseText.find(definition_str) + len(definition_str)
+	halufon_nonce_def_end_loc = httpResponseText.find('\"', halufon_nonce_def_start_loc);
+	
+	global halufon_nonce
+	halufon_nonce = httpResponseText[halufon_nonce_def_start_loc : halufon_nonce_def_end_loc]
+	
+	print(halufon_nonce_def_start_loc, halufon_nonce_def_end_loc, halufon_nonce)
+
+renew_halufon_nonce()
+
+def check_alternative(text, redo = True):
     print(text)
     
-    halufon_nonce = "2b4b4494f8"
-    httpResponse = requests.get(f"https://hebrew-academy.org.il/wp-admin/admin-ajax.php?action=load_halufot_text&input={text}&_ajax_nonce={halufon_nonce}", verify = False)
+    url = f"https://hebrew-academy.org.il/wp-admin/admin-ajax.php?action=load_halufot_text&input={text}&_ajax_nonce={halufon_nonce}"
+    print("quering url:", url)
+    httpResponse = requests.get(url, verify = False)
 
     if httpResponse.text == "":
         chatResponse = f"חוששני שאיני יודע את החלופה העברית ל{text}"
     else:
         jsonResponse = json.loads(httpResponse.text)
+        
+        if isinstance(jsonResponse, int) and redo:
+            renew_halufon_nonce()
+            return check_alternative(text, False)
+        # otherwise
+		
         if len(jsonResponse) == 0:
             chatResponse = "חלה שגיאה!"
         else:
